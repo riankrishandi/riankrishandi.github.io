@@ -31,6 +31,15 @@ function log(data, type = '') {
 // Selected device object cache
 let deviceCache = null;
 
+function handleDisconnection(event) {
+    let device = event.target;
+
+    log('"' + device.name +
+        '" bluetooth device disconnected, trying to reconnect...');
+
+    connectDeviceAndCacheCharacteristic(device).catch(error => log(error));
+}
+
 function requestBluetoothDevice() {
     log('Requesting bluetooth device...');
 
@@ -41,6 +50,8 @@ function requestBluetoothDevice() {
         then(device => {
             log('"' + device.name + '" bluetooth device selected');
             deviceCache = device;
+
+            deviceCache.addEventListener('gattserverdisconnected', handleDisconnection)
 
             return deviceCache;
         });
@@ -84,23 +95,24 @@ function startNotifications(characteristic) {
             log('Notifications started');
         });
 }
+
+let encoder = new ThermalPrinterEncoder({
+    language: 'esc-pos',
+    width: 48,
+    wordWrap: true
+});
+let result = encoder
+    .initialize()
+    .text('The quick brown fox jumps over the lazy dog')
+    .newline()
+    .encode();
+
 // Launch Bluetooth device chooser and connect to the selected
 function connect() {
     return (deviceCache ? Promise.resolve(deviceCache) :
         requestBluetoothDevice()).
         then(device => connectDeviceAndCacheCharacteristic(device)).
         then(characteristic => {
-            let encoder = new ThermalPrinterEncoder({
-                language: 'esc-pos',
-                width: 48,
-                wordWrap: true
-            });
-            let result = encoder
-                .initialize()
-                .text('The quick brown fox jumps over the lazy dog')
-                .newline()
-                .encode();
-
             characteristic.writeValue(result)
         }).
         catch(error => log(error));
@@ -108,10 +120,25 @@ function connect() {
 
 // Disconnect from the connected device
 function disconnect() {
-    //
+    if (deviceCache) {
+        log('Disconnecting from "' + deviceCache.name + '" bluetooth device...');
+        deviceCache.removeEventListener('gattserverdisconnected', handleDisconnection);
+
+        if (deviceCache.gatt.connected) {
+            deviceCache.gatt.disconnect();
+            log('"' + deviceCache.name + '" bluetooth device disconnected');
+        }
+        else {
+            log('"' + deviceCache.name +
+                '" bluetooth device is already disconnected');
+        }
+    }
+
+    characteristicCache = null;
+    deviceCache = null;
 }
 
 // Send data to the connected device
 function send(data) {
-    //
+    
 }
