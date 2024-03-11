@@ -62,6 +62,7 @@ let characteristicCache = null;
 
 function connectDeviceAndCacheCharacteristic(device) {
     if (device.gatt.connected && characteristicCache) {
+        log("Directly resolve")
         return Promise.resolve(characteristicCache);
     }
 
@@ -113,6 +114,7 @@ function connect() {
         requestBluetoothDevice()).
         then(device => connectDeviceAndCacheCharacteristic(device)).
         then(characteristic => {
+            log("Printing...")
             characteristic.writeValue(result)
         }).
         catch(error => log(error));
