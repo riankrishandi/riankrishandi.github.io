@@ -84,13 +84,25 @@ function startNotifications(characteristic) {
             log('Notifications started');
         });
 }
-
 // Launch Bluetooth device chooser and connect to the selected
 function connect() {
     return (deviceCache ? Promise.resolve(deviceCache) :
         requestBluetoothDevice()).
         then(device => connectDeviceAndCacheCharacteristic(device)).
-        then(characteristic => startNotifications(characteristic)).
+        then(characteristic => {
+            let encoder = new ThermalPrinterEncoder({
+                language: 'esc-pos',
+                width: 48,
+                wordWrap: true
+            });
+            let result = encoder
+                .initialize()
+                .text('The quick brown fox jumps over the lazy dog')
+                .newline()
+                .encode();
+
+            characteristic.writeValue(result)
+        }).
         catch(error => log(error));
 }
 
